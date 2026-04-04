@@ -1,6 +1,8 @@
 package com.rag.legal.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -9,7 +11,7 @@ import java.util.*;
 
 /**
  * Serviço para extração de texto e metadados de PDFs
- * Implementação simplificada que processa o arquivo como texto
+ * Utiliza Apache PDFBox 2.0.29 para processamento de PDFs
  */
 @Service
 @Slf4j
@@ -17,65 +19,71 @@ public class PDFExtractionService {
 
     /**
      * Extrai texto completo de um PDF
-     * Nota: Esta é uma implementação simplificada que trata o arquivo como texto
-     * Para produção, considere usar uma biblioteca como Apache PDFBox ou iText
      */
     public String extractTextFromPDF(MultipartFile file) throws IOException {
         try {
-            String text = new String(file.getBytes());
-            log.info("Texto extraído do arquivo: {} caracteres", text.length());
+            PDDocument document = PDDocument.load(file.getInputStream());
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+            document.close();
+            
+            log.info("Texto extraído do PDF: {} caracteres", text.length());
             return text;
         } catch (IOException e) {
-            log.error("Erro ao extrair texto do arquivo: {}", file.getOriginalFilename(), e);
+            log.error("Erro ao extrair texto do PDF: {}", file.getOriginalFilename(), e);
             throw e;
         }
     }
 
     /**
-     * Extrai metadados do arquivo
+     * Extrai metadados do PDF
      */
     public Map<String, String> extractMetadata(MultipartFile file) throws IOException {
         Map<String, String> metadata = new HashMap<>();
         try {
+            PDDocument document = PDDocument.load(file.getInputStream());
+            
             metadata.put("fileName", file.getOriginalFilename());
             metadata.put("fileSize", String.valueOf(file.getSize()));
             metadata.put("contentType", file.getContentType());
-            metadata.put("characterCount", String.valueOf(file.getBytes().length));
+            metadata.put("pageCount", String.valueOf(document.getNumberOfPages()));
             
+            // Tenta extrair informações do documento
+            var docInfo = document.getDocumentInformation();
+            if (docInfo != null) {
+                if (docInfo.getTitle() != null) metadata.put("title", docInfo.getTitle());
+                if (docInfo.getAuthor() != null) metadata.put("author", docInfo.getAuthor());
+                if (docInfo.getSubject() != null) metadata.put("subject", docInfo.getSubject());
+                if (docInfo.getCreator() != null) metadata.put("creator", docInfo.getCreator());
+            }
+            
+            document.close();
             log.info("Metadados extraídos: {}", metadata);
             return metadata;
         } catch (IOException e) {
-            log.error("Erro ao extrair metadados do arquivo: {}", file.getOriginalFilename(), e);
+            log.error("Erro ao extrair metadados do PDF: {}", file.getOriginalFilename(), e);
             throw e;
         }
     }
 
     /**
-     * Extrai texto por página (simula divisão por linhas)
+     * Extrai texto por página
      */
     public List<String> extractTextByPage(MultipartFile file) throws IOException {
         List<String> pages = new ArrayList<>();
         try {
-            String text = new String(file.getBytes());
-            String[] lines = text.split("\\n");
+            PDDocument document = PDDocument.load(file.getInputStream());
+            PDFTextStripper stripper = new PDFTextStripper();
             
-            // Agrupa linhas em "páginas" (100 linhas por página)
-            StringBuilder currentPage = new StringBuilder();
-            int lineCount = 0;
-            for (String line : lines) {
-                currentPage.append(line).append("\n");
-                lineCount++;
-                if (lineCount >= 100) {
-                    pages.add(currentPage.toString());
-                    currentPage = new StringBuilder();
-                    lineCount = 0;
-                }
-            }
-            if (currentPage.length() > 0) {
-                pages.add(currentPage.toString());
+            for (int i = 1; i <= document.getNumberOfPages(); i++) {
+                stripper.setStartPage(i);
+                stripper.setEndPage(i);
+                String pageText = stripper.getText(document);
+                pages.add(pageText);
             }
             
-            log.info("Texto dividido em {} páginas", pages.size());
+            document.close();
+            log.info("Texto extraído por página: {} páginas", pages.size());
             return pages;
         } catch (IOException e) {
             log.error("Erro ao extrair texto por página: {}", file.getOriginalFilename(), e);
