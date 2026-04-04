@@ -40,4 +40,6 @@ public interface LegalDocumentRepository extends JpaRepository<LegalDocument, Lo
 
     @Query(value = "SELECT * FROM legal_documents WHERE LOWER(content) LIKE LOWER(CONCAT('%', :keyword, '%')) AND status = 'VIGENTE'", nativeQuery = true)
     List<LegalDocument> findByContentContainingIgnoreCaseAndVigente(@Param("keyword") String keyword);
+
+    long countByDocumentType(String documentType);
 }
