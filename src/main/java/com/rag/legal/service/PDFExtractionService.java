@@ -1,43 +1,43 @@
 package com.rag.legal.service;
 
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.text.pdf.PdfTextExtractor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
- * Serviço para extração de texto de documentos PDF
- * 
- * Funcionalidades:
- * - Extração de texto bruto
- * - Extração de metadados (título, autor, etc)
- * - Processamento em chunks (páginas ou parágrafos)
- * - Limpeza e normalização de texto
+ * Serviço para extração de texto e metadados de PDFs
+ * Utiliza iText 7 para processamento de PDFs
  */
 @Service
 @Slf4j
 public class PDFExtractionService {
 
-    private static final int DEFAULT_CHUNK_SIZE = 500; // caracteres
-    private static final int CHUNK_OVERLAP = 100; // caracteres de sobreposição
-    private static final Pattern PARAGRAPH_PATTERN = Pattern.compile("\\n\\n+");
-    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
-
     /**
      * Extrai texto completo de um PDF
      */
     public String extractTextFromPDF(MultipartFile file) throws IOException {
-        byte[] bytes = file.getBytes();
-        try (PDDocument document = PDDocument.load(bytes)) {
-            PDFTextStripper stripper = new PDFTextStripper();
-            String text = stripper.getText(document);
+        try {
+            byte[] bytes = file.getBytes();
+            PdfReader reader = new PdfReader(new java.io.ByteArrayInputStream(bytes));
+            PdfDocument pdfDoc = new PdfDocument(reader);
+            
+            StringBuilder text = new StringBuilder();
+            for (int i = 1; i <= pdfDoc.getNumberOfPages(); i++) {
+                String pageText = PdfTextExtractor.getTextFromPage(pdfDoc.getPage(i));
+                text.append(pageText).append("\n");
+            }
+            
+            pdfDoc.close();
             log.info("Texto extraído do PDF: {} caracteres", text.length());
-            return text;
+            return text.toString();
         } catch (IOException e) {
             log.error("Erro ao extrair texto do PDF: {}", file.getOriginalFilename(), e);
             throw e;
@@ -49,25 +49,28 @@ public class PDFExtractionService {
      */
     public Map<String, String> extractMetadata(MultipartFile file) throws IOException {
         Map<String, String> metadata = new HashMap<>();
-        byte[] bytes = file.getBytes();
-        try (PDDocument document = PDDocument.load(bytes)) {
-            var docInfo = document.getDocumentInformation();
+        try {
+            byte[] bytes = file.getBytes();
+            PdfReader reader = new PdfReader(new java.io.ByteArrayInputStream(bytes));
+            PdfDocument pdfDoc = new PdfDocument(reader);
             
-            if (docInfo != null) {
-                metadata.put("title", docInfo.getTitle() != null ? docInfo.getTitle() : "");
-                metadata.put("author", docInfo.getAuthor() != null ? docInfo.getAuthor() : "");
-                metadata.put("subject", docInfo.getSubject() != null ? docInfo.getSubject() : "");
-                metadata.put("creator", docInfo.getCreator() != null ? docInfo.getCreator() : "");
-                metadata.put("producer", docInfo.getProducer() != null ? docInfo.getProducer() : "");
-                metadata.put("creationDate", docInfo.getCreationDate() != null ? docInfo.getCreationDate().toString() : "");
-                metadata.put("modificationDate", docInfo.getModificationDate() != null ? docInfo.getModificationDate().toString() : "");
-            }
-            
-            metadata.put("pageCount", String.valueOf(document.getNumberOfPages()));
+            // Metadados básicos
             metadata.put("fileName", file.getOriginalFilename());
             metadata.put("fileSize", String.valueOf(file.getSize()));
+            metadata.put("pageCount", String.valueOf(pdfDoc.getNumberOfPages()));
+            metadata.put("contentType", file.getContentType());
             
-            log.info("Metadados extraídos do PDF: {}", metadata);
+            // Tenta extrair informações do documento
+            var docInfo = pdfDoc.getDocumentInfo();
+            if (docInfo != null) {
+                if (docInfo.getTitle() != null) metadata.put("title", docInfo.getTitle());
+                if (docInfo.getAuthor() != null) metadata.put("author", docInfo.getAuthor());
+                if (docInfo.getSubject() != null) metadata.put("subject", docInfo.getSubject());
+                if (docInfo.getCreator() != null) metadata.put("creator", docInfo.getCreator());
+            }
+            
+            pdfDoc.close();
+            log.info("Metadados extraídos: {}", metadata);
             return metadata;
         } catch (IOException e) {
             log.error("Erro ao extrair metadados do PDF: {}", file.getOriginalFilename(), e);
@@ -80,167 +83,56 @@ public class PDFExtractionService {
      */
     public List<String> extractTextByPage(MultipartFile file) throws IOException {
         List<String> pages = new ArrayList<>();
-        byte[] bytes = file.getBytes();
-        try (PDDocument document = PDDocument.load(bytes)) {
-            PDFTextStripper stripper = new PDFTextStripper();
+        try {
+            byte[] bytes = file.getBytes();
+            PdfReader reader = new PdfReader(new java.io.ByteArrayInputStream(bytes));
+            PdfDocument pdfDoc = new PdfDocument(reader);
             
-            for (int i = 0; i < document.getNumberOfPages(); i++) {
-                stripper.setStartPage(i + 1);
-                stripper.setEndPage(i + 1);
-                String pageText = stripper.getText(document);
+            for (int i = 1; i <= pdfDoc.getNumberOfPages(); i++) {
+                String pageText = PdfTextExtractor.getTextFromPage(pdfDoc.getPage(i));
                 pages.add(pageText);
             }
             
+            pdfDoc.close();
             log.info("Texto extraído por página: {} páginas", pages.size());
             return pages;
         } catch (IOException e) {
-            log.error("Erro ao extrair texto por página do PDF: {}", file.getOriginalFilename(), e);
+            log.error("Erro ao extrair texto por página: {}", file.getOriginalFilename(), e);
             throw e;
         }
     }
 
     /**
-     * Divide texto em chunks com sobreposição
-     * Útil para RAG quando o documento é muito grande
+     * Limpa e normaliza texto extraído
      */
-    public List<String> chunkText(String text, int chunkSize, int overlap) {
-        List<String> chunks = new ArrayList<>();
-        
-        if (text == null || text.isEmpty()) {
-            return chunks;
-        }
-        
-        // Normalizar whitespace
-        String normalizedText = WHITESPACE_PATTERN.matcher(text).replaceAll(" ");
-        
-        int start = 0;
-        while (start < normalizedText.length()) {
-            int end = Math.min(start + chunkSize, normalizedText.length());
-            
-            // Tentar quebrar em espaço se possível
-            if (end < normalizedText.length()) {
-                int lastSpace = normalizedText.lastIndexOf(' ', end);
-                if (lastSpace > start) {
-                    end = lastSpace;
-                }
-            }
-            
-            String chunk = normalizedText.substring(start, end).trim();
-            if (!chunk.isEmpty()) {
-                chunks.add(chunk);
-            }
-            
-            // Avançar com sobreposição
-            start = end - overlap;
-        }
-        
-        log.info("Texto dividido em {} chunks (tamanho: {}, sobreposição: {})", 
-                 chunks.size(), chunkSize, overlap);
-        return chunks;
+    public String cleanText(String text) {
+        return text
+            .replaceAll("\\s+", " ")
+            .replaceAll("[^\\w\\s\\-.,;:()\\[\\]{}]", "")
+            .trim();
     }
 
     /**
-     * Divide texto em chunks por parágrafo (mais semântico)
+     * Divide texto em chunks por parágrafo
      */
-    public List<String> chunkByParagraph(String text, int maxChunkSize) {
+    public List<String> chunkTextByParagraph(String text, int minChunkSize) {
         List<String> chunks = new ArrayList<>();
-        
-        if (text == null || text.isEmpty()) {
-            return chunks;
-        }
-        
-        // Dividir por parágrafos
-        String[] paragraphs = PARAGRAPH_PATTERN.split(text);
+        String[] paragraphs = text.split("\\n\\n+");
         
         StringBuilder currentChunk = new StringBuilder();
         for (String paragraph : paragraphs) {
-            String cleanParagraph = WHITESPACE_PATTERN.matcher(paragraph).replaceAll(" ").trim();
-            
-            if (cleanParagraph.isEmpty()) {
-                continue;
-            }
-            
-            // Se adicionar o parágrafo exceder o limite, salvar o chunk atual
-            if (currentChunk.length() + cleanParagraph.length() + 1 > maxChunkSize && currentChunk.length() > 0) {
+            if (currentChunk.length() + paragraph.length() > minChunkSize && currentChunk.length() > 0) {
                 chunks.add(currentChunk.toString().trim());
                 currentChunk = new StringBuilder();
             }
-            
-            if (currentChunk.length() > 0) {
-                currentChunk.append(" ");
-            }
-            currentChunk.append(cleanParagraph);
+            currentChunk.append(paragraph).append("\n\n");
         }
         
-        // Adicionar último chunk
         if (currentChunk.length() > 0) {
             chunks.add(currentChunk.toString().trim());
         }
         
-        log.info("Texto dividido em {} chunks por parágrafo", chunks.size());
+        log.info("Texto dividido em {} chunks", chunks.size());
         return chunks;
-    }
-
-    /**
-     * Limpa e normaliza texto
-     */
-    public String cleanText(String text) {
-        if (text == null) {
-            return "";
-        }
-        
-        // Remover caracteres especiais problemáticos
-        text = text.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", "");
-        
-        // Normalizar espaços em branco
-        text = WHITESPACE_PATTERN.matcher(text).replaceAll(" ");
-        
-        // Remover espaços em branco no início e fim
-        text = text.trim();
-        
-        return text;
-    }
-
-    /**
-     * Extrai seções de um texto baseado em padrões (ex: "Artigo 1", "§ 1º")
-     */
-    public Map<String, String> extractSections(String text) {
-        Map<String, String> sections = new LinkedHashMap<>();
-        
-        if (text == null || text.isEmpty()) {
-            return sections;
-        }
-        
-        // Padrões comuns em documentos jurídicos
-        Pattern sectionPattern = Pattern.compile(
-            "(?:^|\\n)((?:Art(?:igo)?|§|Seção|Capítulo|Título)\\s*\\.?\\s*\\d+[^\\n]*)",
-            Pattern.MULTILINE | Pattern.CASE_INSENSITIVE
-        );
-        
-        var matcher = sectionPattern.matcher(text);
-        int lastEnd = 0;
-        String lastSection = "Preâmbulo";
-        
-        while (matcher.find()) {
-            // Salvar conteúdo da seção anterior
-            String sectionContent = text.substring(lastEnd, matcher.start()).trim();
-            if (!sectionContent.isEmpty()) {
-                sections.put(lastSection, sectionContent);
-            }
-            
-            lastSection = matcher.group(1).trim();
-            lastEnd = matcher.start();
-        }
-        
-        // Adicionar última seção
-        if (lastEnd < text.length()) {
-            String sectionContent = text.substring(lastEnd).trim();
-            if (!sectionContent.isEmpty()) {
-                sections.put(lastSection, sectionContent);
-            }
-        }
-        
-        log.info("Extraídas {} seções do texto", sections.size());
-        return sections;
     }
 }
