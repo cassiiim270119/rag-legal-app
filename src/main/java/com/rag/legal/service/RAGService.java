@@ -3,9 +3,7 @@ package com.rag.legal.service;
 import com.rag.legal.dto.RAGResponse;
 import com.rag.legal.dto.SearchResult;
 import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +27,6 @@ public class RAGService {
     private String modelName;
 
     private ChatLanguageModel chatModel;
-    private StreamingChatLanguageModel streamingChatModel;
 
     public RAGService() {
         initializeModels();
@@ -44,14 +41,6 @@ public class RAGService {
                 
                 // Groq é compatível com OpenAI SDK
                 this.chatModel = OpenAiChatModel.builder()
-                    .apiKey(groqApiKey)
-                    .modelName(modelName)
-                    .baseUrl("https://api.groq.com/openai/v1")
-                    .temperature(0.3)
-                    .topP(0.9)
-                    .build();
-
-                this.streamingChatModel = OpenAiStreamingChatModel.builder()
                     .apiKey(groqApiKey)
                     .modelName(modelName)
                     .baseUrl("https://api.groq.com/openai/v1")
@@ -122,6 +111,7 @@ public class RAGService {
 
     /**
      * Executa RAG com streaming: busca híbrida + geração com stream
+     * Implementação simplificada que envia a resposta em chunks
      */
     public Flux<String> ragStream(String query, String tribunal, String legalArea) {
         return Flux.create(sink -> {
@@ -140,8 +130,26 @@ public class RAGService {
                 // 2. Construir contexto
                 String context = buildContext(sources);
 
-                // 3. Gerar resposta com stream
-                generateAnswerStream(query, context, sink);
+                // 3. Gerar resposta e enviar em chunks
+                String answer = generateAnswer(query, context);
+                
+                // Dividir resposta em chunks de 100 caracteres para simular streaming
+                int chunkSize = 100;
+                for (int i = 0; i < answer.length(); i += chunkSize) {
+                    int end = Math.min(i + chunkSize, answer.length());
+                    String chunk = answer.substring(i, end);
+                    sink.next(chunk);
+                    
+                    // Pequeno delay para simular streaming
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                
+                sink.complete();
 
             } catch (Exception e) {
                 log.error("Erro no RAG com stream", e);
@@ -195,39 +203,6 @@ public class RAGService {
         } catch (Exception e) {
             log.error("Erro ao gerar resposta com LLM", e);
             return "Erro ao gerar resposta: " + e.getMessage();
-        }
-    }
-
-    /**
-     * Gera resposta com streaming
-     */
-    private void generateAnswerStream(String query, String context, FluxSink<String> sink) {
-        try {
-            String prompt = String.format(
-                "Você é um assistente jurídico especializado. Com base nos documentos fornecidos, responda à seguinte pergunta:\\n\\n" +
-                "Pergunta: %s\\n\\n" +
-                "%s\\n\\n" +
-                "Responda de forma clara, precisa e cite os documentos utilizados.",
-                query, context
-            );
-
-            if (streamingChatModel != null) {
-                try {
-                    var response = streamingChatModel.generate(prompt);
-                    sink.next(response);
-                    sink.complete();
-                } catch (Exception e) {
-                    sink.error(e);
-                }
-            } else {
-                // Fallback: resposta simulada
-                sink.next("Resposta simulada com stream para: " + query);
-                sink.next("\n\nNota: Para usar LLM com Groq, configure a variável GROQ_API_KEY");
-                sink.complete();
-            }
-        } catch (Exception e) {
-            log.error("Erro ao gerar resposta com stream", e);
-            sink.error(e);
         }
     }
 }
