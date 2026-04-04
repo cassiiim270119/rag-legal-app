@@ -32,7 +32,7 @@ public class PDFExtractionService {
      * Extrai texto completo de um PDF
      */
     public String extractTextFromPDF(MultipartFile file) throws IOException {
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
+        try (PDDocument document = PDDocument.loadPDF(file.getInputStream())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String text = stripper.getText(document);
             log.info("Texto extraído do PDF: {} caracteres", text.length());
@@ -48,7 +48,7 @@ public class PDFExtractionService {
      */
     public Map<String, String> extractMetadata(MultipartFile file) throws IOException {
         Map<String, String> metadata = new HashMap<>();
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
+        try (PDDocument document = PDDocument.loadPDF(file.getInputStream())) {
             var docInfo = document.getDocumentInformation();
             
             if (docInfo != null) {
@@ -78,7 +78,7 @@ public class PDFExtractionService {
      */
     public List<String> extractTextByPage(MultipartFile file) throws IOException {
         List<String> pages = new ArrayList<>();
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
+        try (PDDocument document = PDDocument.loadPDF(file.getInputStream())) {
             PDFTextStripper stripper = new PDFTextStripper();
             
             for (int i = 0; i < document.getNumberOfPages(); i++) {
