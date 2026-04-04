@@ -6,16 +6,14 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
-import dev.langchain4j.model.chat.ChatMessage;
-import dev.langchain4j.model.chat.ChatMessageRole;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -187,9 +185,7 @@ public class RAGService {
             );
 
             if (chatModel != null) {
-                var response = chatModel.generate(List.of(
-                    new ChatMessage(ChatMessageRole.USER, prompt)
-                ));
+                var response = chatModel.generate(prompt);
                 return response.content().text();
             } else {
                 // Fallback: resposta simulada
@@ -205,7 +201,7 @@ public class RAGService {
     /**
      * Gera resposta com streaming
      */
-    private void generateAnswerStream(String query, String context, Flux.FluxSink<String> sink) {
+    private void generateAnswerStream(String query, String context, FluxSink<String> sink) {
         try {
             String prompt = String.format(
                 "Você é um assistente jurídico especializado. Com base nos documentos fornecidos, responda à seguinte pergunta:\\n\\n" +
@@ -216,25 +212,22 @@ public class RAGService {
             );
 
             if (streamingChatModel != null) {
-                streamingChatModel.generate(
-                    List.of(new ChatMessage(ChatMessageRole.USER, prompt)),
-                    new dev.langchain4j.model.chat.StreamingChatLanguageModel.StreamingChatModelCallback() {
-                        @Override
-                        public void onNext(String token) {
-                            sink.next(token);
-                        }
-
-                        @Override
-                        public void onComplete(dev.langchain4j.model.chat.response.ChatResponse response) {
-                            sink.complete();
-                        }
-
-                        @Override
-                        public void onError(Throwable error) {
-                            sink.error(error);
-                        }
+                streamingChatModel.generate(prompt, new dev.langchain4j.model.chat.StreamingChatLanguageModel.StreamingChatModelCallback() {
+                    @Override
+                    public void onNext(String token) {
+                        sink.next(token);
                     }
-                );
+
+                    @Override
+                    public void onComplete(dev.langchain4j.model.chat.response.ChatResponse response) {
+                        sink.complete();
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        sink.error(error);
+                    }
+                });
             } else {
                 // Fallback: resposta simulada
                 sink.next("Resposta simulada com stream para: " + query);
