@@ -1,6 +1,12 @@
 package com.rag.legal.controller;
 
 import com.rag.legal.service.PDFIndexingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,6 +30,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/pdf")
 @Slf4j
+@Tag(name = "PDF Upload", description = "Endpoints para upload e indexação de documentos PDF")
 public class PDFUploadController {
 
     @Autowired
@@ -40,11 +47,17 @@ public class PDFUploadController {
      *   -F "documentType=SUMULA"
      */
     @PostMapping("/upload")
+    @Operation(summary = "Upload de PDF", description = "Faz upload de um arquivo PDF, extrai texto, gera embeddings e indexa para busca")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "PDF indexado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Arquivo inválido ou vazio"),
+        @ApiResponse(responseCode = "500", description = "Erro ao processar PDF")
+    })
     public ResponseEntity<Map<String, Object>> uploadPDF(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "tribunal", required = false) String tribunal,
-            @RequestParam(value = "legalArea", required = false) String legalArea,
-            @RequestParam(value = "documentType", required = false) String documentType) {
+            @RequestParam("file") @Parameter(description = "Arquivo PDF para upload") MultipartFile file,
+            @RequestParam(value = "tribunal", required = false) @Parameter(description = "Tribunal (ex: STF, STJ)") String tribunal,
+            @RequestParam(value = "legalArea", required = false) @Parameter(description = "Area legal (ex: PENAL, CIVIL)") String legalArea,
+            @RequestParam(value = "documentType", required = false) @Parameter(description = "Tipo de documento (ex: LEI, SUMULA)") String documentType) {
 
         log.info("Recebido upload de PDF: {}", file.getOriginalFilename());
 
@@ -104,11 +117,17 @@ public class PDFUploadController {
      *   -F "legalArea=PENAL"
      */
     @PostMapping("/upload-batch")
+    @Operation(summary = "Upload em Batch", description = "Faz upload de múltiplos arquivos PDF simultaneamente")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Batch processado"),
+        @ApiResponse(responseCode = "400", description = "Nenhum arquivo válido"),
+        @ApiResponse(responseCode = "500", description = "Erro ao processar batch")
+    })
     public ResponseEntity<Map<String, Object>> uploadPDFBatch(
-            @RequestParam("files") List<MultipartFile> files,
-            @RequestParam(value = "tribunal", required = false) String tribunal,
-            @RequestParam(value = "legalArea", required = false) String legalArea,
-            @RequestParam(value = "documentType", required = false) String documentType) {
+            @RequestParam("files") @Parameter(description = "Lista de arquivos PDF") List<MultipartFile> files,
+            @RequestParam(value = "tribunal", required = false) @Parameter(description = "Tribunal") String tribunal,
+            @RequestParam(value = "legalArea", required = false) @Parameter(description = "Area legal") String legalArea,
+            @RequestParam(value = "documentType", required = false) @Parameter(description = "Tipo de documento") String documentType) {
 
         log.info("Recebido upload em batch de {} PDFs", files.size());
 
@@ -183,6 +202,8 @@ public class PDFUploadController {
      * curl http://localhost:8080/api/pdf/stats
      */
     @GetMapping("/stats")
+    @Operation(summary = "Estatísticas de Indexação", description = "Retorna informações sobre documentos indexados")
+    @ApiResponse(responseCode = "200", description = "Estatísticas retornadas")
     public ResponseEntity<Map<String, Object>> getStats() {
         try {
             Map<String, Object> stats = pdfIndexingService.getIndexingStats();
@@ -201,6 +222,8 @@ public class PDFUploadController {
      * curl http://localhost:8080/api/pdf/health
      */
     @GetMapping("/health")
+    @Operation(summary = "Health Check", description = "Verifica se o serviço de PDF está ativo")
+    @ApiResponse(responseCode = "200", description = "Serviço está ativo")
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
             "status", "UP",
