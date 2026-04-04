@@ -59,7 +59,7 @@ public class PDFIndexingService {
             String cleanedText = pdfExtractionService.cleanText(fullText);
             
             // 3. Dividir em chunks
-            List<String> chunks = pdfExtractionService.chunkByParagraph(cleanedText, CHUNK_SIZE);
+            List<String> chunks = pdfExtractionService.chunkTextByParagraph(cleanedText, CHUNK_SIZE);
             
             if (chunks.isEmpty()) {
                 log.warn("Nenhum chunk gerado para o PDF: {}", file.getOriginalFilename());
