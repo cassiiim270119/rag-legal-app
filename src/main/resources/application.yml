@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: rag-legal-app
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+  datasource:
+    url: jdbc:h2:mem:ragdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    root: INFO
+    com.rag.legal: DEBUG
+    org.springframework.web: DEBUG
+
+# LangChain4j Configuration
+langchain4j:
+  groq:
+    api-key: ${GROQ_API_KEY:}
+    model-name: mixtral-8x7b-32768
+    temperature: 0.3
+    top-p: 0.9
+
+# RAG Configuration
+rag:
+  embedding:
+    model: all-minilm-l6-v2
+    dimension: 384
+  reranking:
+    enabled: true
+    top-k: 5
+  hybrid-search:
+    bm25-weight: 0.4
+    vector-weight: 0.6

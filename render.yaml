@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: rag-legal-app
+    env: docker
+    region: frankfurt
+    plan: free
+    
+    # Build configuration
+    dockerfilePath: ./Dockerfile
+    
+    # Environment variables
+    envVars:
+      - key: OPENAI_API_KEY
+        scope: build,runtime
+        sync: false
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+        scope: runtime
+      - key: JAVA_OPTS
+        value: -Xmx256m -Xms128m
+        scope: runtime
+    
+    # Health check
+    healthCheckPath: /api/rag/health
+    
+    # Autoscaling
+    autoDeploy: true
+    
+    # Resources
+    maxInstances: 1
+    minInstances: 1
+    
+    # Timeout
+    buildCommand: mvn clean install -DskipTests
+    startCommand: java -jar target/rag-legal-app-1.0.0.jar
