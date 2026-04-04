@@ -16,10 +16,10 @@ import java.util.List;
  * Acesse em: http://localhost:8080/swagger-ui.html
  * JSON OpenAPI: http://localhost:8080/v3/api-docs
  */
-@Configuration
+//@Configuration
 public class OpenAPIConfig {
 
-    @Bean
+    //@Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
             .info(new Info()
@@ -36,10 +36,10 @@ public class OpenAPIConfig {
             .servers(List.of(
                 new Server()
                     .url("https://rag-legal-app.onrender.com")
-                    .description("Production Server"),
+                    .description("Development Server"),
                 new Server()
                     .url("http://localhost:8080")
-                    .description("Development Server")
+                    .description("Local Server")
             ));
     }
 }
