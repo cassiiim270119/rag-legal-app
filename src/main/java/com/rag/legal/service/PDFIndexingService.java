@@ -95,9 +95,9 @@ public class PDFIndexingService {
                         .legalArea(legalArea != null ? legalArea : "DIVERSOS")
                         .status("VIGENTE")
                         .embedding(embedding)
-                        .sourceFile(file.getOriginalFilename())
-                        .pageNumber(chunkNumber)
-                        .uploadDate(LocalDate.now())
+                        .chapter(file.getOriginalFilename())
+                        .paragraph("Chunk " + chunkNumber)
+                        .publicationDate(LocalDate.now())
                         .build();
                     
                     // Salvar no banco
@@ -128,7 +128,7 @@ public class PDFIndexingService {
                 .map(d -> Map.of(
                     "id", d.getId(),
                     "title", d.getTitle(),
-                    "pageNumber", d.getPageNumber()
+                    "paragraph", d.getParagraph()
                 ))
                 .toList());
 
