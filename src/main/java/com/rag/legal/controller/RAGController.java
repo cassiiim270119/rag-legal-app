@@ -5,6 +5,13 @@ import com.rag.legal.dto.SearchRequest;
 import com.rag.legal.dto.SearchResult;
 import com.rag.legal.service.HybridSearchService;
 import com.rag.legal.service.RAGService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,8 +23,9 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @RestController
-@RequestMapping("/rag")
+@RequestMapping("/api/rag")
 @Slf4j
+@Tag(name = "RAG Endpoints", description = "Endpoints para Retrieval-Augmented Generation com busca híbrida")
 public class RAGController {
 
     @Autowired
@@ -27,12 +35,19 @@ public class RAGController {
     private HybridSearchService hybridSearchService;
 
     /**
-     * Endpoint síncrono para RAG
+     * Endpoint sín crono para RAG
      * POST /api/rag/query
      * Body: { "query": "...", "tribunal": "STF", "legalArea": "CIVIL" }
      */
     @PostMapping("/query")
-    public ResponseEntity<RAGResponse> querySync(@RequestBody SearchRequest request) {
+    @Operation(summary = "Consulta RAG Síncrona", description = "Executa busca híbrida e gera resposta com LLM de forma síncrona")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Resposta gerada com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<RAGResponse> querySync(
+            @RequestBody @Parameter(description = "Requisição de busca") SearchRequest request) {
         try {
             log.info("Recebida requisição RAG síncrona: {}", request.getQuery());
 
@@ -60,7 +75,14 @@ public class RAGController {
      * Response: text/event-stream
      */
     @PostMapping(value = "/query-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> queryStream(@RequestBody SearchRequest request) {
+    @Operation(summary = "Consulta RAG com Stream", description = "Executa busca híbrida e retorna resposta em stream (text/event-stream)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Stream iniciado com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public Flux<String> queryStream(
+            @RequestBody @Parameter(description = "Requisição de busca") SearchRequest request) {
         try {
             log.info("Recebida requisição RAG com stream: {}", request.getQuery());
 
@@ -80,12 +102,19 @@ public class RAGController {
     }
 
     /**
-     * Endpoint para busca híbrida (sem geração com LLM)
+     * Endpoint para busca híbr ida (sem geração com LLM)
      * POST /api/rag/search
      * Body: { "query": "...", "tribunal": "STF", "legalArea": "CIVIL", "limit": 10 }
      */
     @PostMapping("/search")
-    public ResponseEntity<List<SearchResult>> search(@RequestBody SearchRequest request) {
+    @Operation(summary = "Busca Híbr ida", description = "Executa busca híbr ida (BM25 + Vetorial) sem geração de resposta com LLM")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Resultados encontrados"),
+        @ApiResponse(responseCode = "400", description = "Requisição inválida"),
+        @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+    })
+    public ResponseEntity<List<SearchResult>> search(
+            @RequestBody @Parameter(description = "Requisição de busca") SearchRequest request) {
         try {
             log.info("Recebida requisição de busca híbrida: {}", request.getQuery());
 
@@ -112,6 +141,8 @@ public class RAGController {
      * GET /api/rag/health
      */
     @GetMapping("/health")
+    @Operation(summary = "Health Check", description = "Verifica se o serviço RAG está ativo")
+    @ApiResponse(responseCode = "200", description = "Serviço está ativo")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("RAG Service is running");
     }

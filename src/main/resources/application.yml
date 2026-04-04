@@ -23,6 +23,21 @@ server:
   servlet:
     context-path: /api
 
+# Configuração do Swagger/OpenAPI
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    use-root-path: true
+    doc-expansion: list
+    show-extensions: true
+    show-common-extensions: true
+  api-docs:
+    path: /v3/api-docs
+  show-actuator: false
+
 logging:
   level:
     root: INFO
