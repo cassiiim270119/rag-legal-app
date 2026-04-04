@@ -93,6 +93,34 @@ public class EmbeddingService {
     }
 
     /**
+     * Calcula similaridade de cosseno entre dois embeddings
+     */
+    public double cosineSimilarity(float[] embedding1, float[] embedding2) {
+        if (embedding1.length != embedding2.length) {
+            throw new IllegalArgumentException("Embeddings devem ter a mesma dimensão");
+        }
+        
+        double dotProduct = 0.0;
+        double norm1 = 0.0;
+        double norm2 = 0.0;
+        
+        for (int i = 0; i < embedding1.length; i++) {
+            dotProduct += embedding1[i] * embedding2[i];
+            norm1 += embedding1[i] * embedding1[i];
+            norm2 += embedding2[i] * embedding2[i];
+        }
+        
+        norm1 = Math.sqrt(norm1);
+        norm2 = Math.sqrt(norm2);
+        
+        if (norm1 == 0.0 || norm2 == 0.0) {
+            return 0.0;
+        }
+        
+        return dotProduct / (norm1 * norm2);
+    }
+
+    /**
      * Retorna a dimensão do embedding
      */
     public int getEmbeddingDimension() {

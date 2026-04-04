@@ -186,7 +186,7 @@ public class RAGService {
 
             if (chatModel != null) {
                 var response = chatModel.generate(prompt);
-                return response.content().text();
+                return response;
             } else {
                 // Fallback: resposta simulada
                 return "Resposta simulada baseada na consulta: " + query + 
@@ -212,22 +212,13 @@ public class RAGService {
             );
 
             if (streamingChatModel != null) {
-                streamingChatModel.generate(prompt, new dev.langchain4j.model.chat.StreamingChatLanguageModel.StreamingChatModelCallback() {
-                    @Override
-                    public void onNext(String token) {
-                        sink.next(token);
-                    }
-
-                    @Override
-                    public void onComplete(dev.langchain4j.model.chat.response.ChatResponse response) {
-                        sink.complete();
-                    }
-
-                    @Override
-                    public void onError(Throwable error) {
-                        sink.error(error);
-                    }
-                });
+                try {
+                    var response = streamingChatModel.generate(prompt);
+                    sink.next(response);
+                    sink.complete();
+                } catch (Exception e) {
+                    sink.error(e);
+                }
             } else {
                 // Fallback: resposta simulada
                 sink.next("Resposta simulada com stream para: " + query);
