@@ -6,8 +6,8 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.ChatMessage;
+import dev.langchain4j.model.chat.ChatMessageRole;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -187,17 +187,10 @@ public class RAGService {
             );
 
             if (chatModel != null) {
-                ChatRequest request = ChatRequest.builder()
-                    .messages(java.util.List.of(
-                        new dev.langchain4j.model.chat.ChatMessage(
-                            dev.langchain4j.model.chat.ChatMessageRole.USER,
-                            prompt
-                        )
-                    ))
-                    .build();
-
-                ChatResponse response = chatModel.chat(request);
-                return response.aiMessage().text();
+                var response = chatModel.generate(List.of(
+                    new ChatMessage(ChatMessageRole.USER, prompt)
+                ));
+                return response.content().text();
             } else {
                 // Fallback: resposta simulada
                 return "Resposta simulada baseada na consulta: " + query + 
@@ -212,7 +205,7 @@ public class RAGService {
     /**
      * Gera resposta com streaming
      */
-    private void generateAnswerStream(String query, String context, reactor.core.publisher.FluxSink<String> sink) {
+    private void generateAnswerStream(String query, String context, Flux.FluxSink<String> sink) {
         try {
             String prompt = String.format(
                 "Você é um assistente jurídico especializado. Com base nos documentos fornecidos, responda à seguinte pergunta:\\n\\n" +
@@ -223,14 +216,9 @@ public class RAGService {
             );
 
             if (streamingChatModel != null) {
-                streamingChatModel.chat(
-                    java.util.List.of(
-                        new dev.langchain4j.model.chat.ChatMessage(
-                            dev.langchain4j.model.chat.ChatMessageRole.USER,
-                            prompt
-                        )
-                    ),
-                    new dev.langchain4j.model.chat.StreamingChatLanguageModel.Callback() {
+                streamingChatModel.generate(
+                    List.of(new ChatMessage(ChatMessageRole.USER, prompt)),
+                    new dev.langchain4j.model.chat.StreamingChatLanguageModel.StreamingChatModelCallback() {
                         @Override
                         public void onNext(String token) {
                             sink.next(token);

@@ -1,7 +1,7 @@
 package com.rag.legal.service;
 
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;
+import dev.langchain4j.model.embedding.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,10 +19,14 @@ public class EmbeddingService {
 
     public EmbeddingService() {
         // Usando modelo local all-minilm-l6-v2 para evitar custos de API
-        this.embeddingModel = new OnnxEmbeddingModel(
-            "src/main/resources/models/all-minilm-l6-v2"
-        );
-        log.info("EmbeddingService inicializado com modelo local all-minilm-l6-v2");
+        // Este modelo é incluído na dependência langchain4j-embeddings-all-minilm-l6-v2
+        try {
+            this.embeddingModel = new AllMiniLmL6V2EmbeddingModel();
+            log.info("EmbeddingService inicializado com modelo local all-minilm-l6-v2 (384 dimensões)");
+        } catch (Exception e) {
+            log.error("Erro ao inicializar EmbeddingModel", e);
+            throw new RuntimeException("Falha ao inicializar EmbeddingService", e);
+        }
     }
 
     /**
@@ -48,38 +52,13 @@ public class EmbeddingService {
                 .map(e -> e.vector())
                 .toList();
         } catch (Exception e) {
-            log.error("Erro ao gerar embeddings em batch para {} textos", texts.size(), e);
+            log.error("Erro ao gerar embeddings em batch", e);
             throw new RuntimeException("Falha ao gerar embeddings em batch", e);
         }
     }
 
     /**
-     * Calcula similaridade de cosseno entre dois vetores
-     */
-    public double cosineSimilarity(float[] vec1, float[] vec2) {
-        if (vec1.length != vec2.length) {
-            throw new IllegalArgumentException("Vetores devem ter o mesmo tamanho");
-        }
-
-        double dotProduct = 0.0;
-        double norm1 = 0.0;
-        double norm2 = 0.0;
-
-        for (int i = 0; i < vec1.length; i++) {
-            dotProduct += vec1[i] * vec2[i];
-            norm1 += vec1[i] * vec1[i];
-            norm2 += vec2[i] * vec2[i];
-        }
-
-        if (norm1 == 0.0 || norm2 == 0.0) {
-            return 0.0;
-        }
-
-        return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
-    }
-
-    /**
-     * Retorna a dimensão dos embeddings
+     * Retorna a dimensão do embedding
      */
     public int getEmbeddingDimension() {
         return embeddingDimension;
