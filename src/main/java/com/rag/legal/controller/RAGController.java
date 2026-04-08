@@ -72,10 +72,10 @@ public class RAGController {
      * Endpoint com streaming para RAG
      * POST /api/rag/query-stream
      * Body: { "query": "...", "tribunal": "STF", "legalArea": "CIVIL" }
-     * Response: text/event-stream
+     * Response: content/event-stream
      */
     @PostMapping(value = "/query-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "Consulta RAG com Stream", description = "Executa busca híbrida e retorna resposta em stream (text/event-stream)")
+    @Operation(summary = "Consulta RAG com Stream", description = "Executa busca híbrida e retorna resposta em stream (content/event-stream)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Stream iniciado com sucesso"),
         @ApiResponse(responseCode = "400", description = "Requisição inválida"),

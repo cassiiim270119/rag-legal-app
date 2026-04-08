@@ -44,7 +44,7 @@ public class PDFIndexingService {
     /**
      * Processa e indexa um arquivo PDF
      */
-    public Map<String, Object> indexPDF(MultipartFile file, String tribunal, String legalArea, String documentType) {
+    public Map<String, Object> indexPDF(final MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
@@ -87,12 +87,12 @@ public class PDFIndexingService {
                     
                     // Criar documento
                     LegalDocument document = LegalDocument.builder()
-                        .documentNumber(generateDocumentNumber(file.getOriginalFilename(), chunkNumber))
-                        .documentType(documentType != null ? documentType : "PDF")
+                        .documentNumber(generateDocumentNumber(Objects.requireNonNull(file.getOriginalFilename()), chunkNumber))
+                        .documentType("PDF")
                         .title(title)
                         .content(chunk)
-                        .tribunal(tribunal != null ? tribunal : "GERAL")
-                        .legalArea(legalArea != null ? legalArea : "DIVERSOS")
+                        .tribunal("GERAL")
+                        .legalArea("DIVERSOS")
                         .status("VIGENTE")
                         .embedding(embedding)
                         .chapter(file.getOriginalFilename())
@@ -161,7 +161,7 @@ public class PDFIndexingService {
 
         for (MultipartFile file : files) {
             try {
-                Map<String, Object> result = indexPDF(file, tribunal, legalArea, documentType);
+                Map<String, Object> result = indexPDF(file);
                 results.add(result);
                 
                 if ((Boolean) result.get("success")) {
@@ -173,7 +173,7 @@ public class PDFIndexingService {
                 log.error("Erro ao processar arquivo em batch: {}", file.getOriginalFilename(), e);
                 errorCount++;
                 results.add(Map.of(
-                    "fileName", file.getOriginalFilename(),
+                    "fileName", Objects.requireNonNull(file.getOriginalFilename()),
                     "success", false,
                     "message", "Erro: " + e.getMessage()
                 ));

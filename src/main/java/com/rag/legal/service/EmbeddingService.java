@@ -1,5 +1,10 @@
 package com.rag.legal.service;
 
+import com.rag.legal.dto.IndexingRequest;
+import dev.langchain4j.data.document.Metadata;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,14 +28,35 @@ public class EmbeddingService {
     @Value("${rag.embedding.dimension:384}")
     private int embeddingDimension;
 
-    public EmbeddingService() {
-        log.info("EmbeddingService inicializado (modo simulado - 384 dimensões)");
-        log.info("Para usar embeddings reais, integre com OpenAI, Cohere ou Hugging Face");
+
+
+    public String embed(final IndexingRequest request) {
+        TextSegment segment;
+        if (request.metadata() != null && !request.metadata().isEmpty()){
+            segment = TextSegment.from(request.content(), Metadata.from(request.metadata()));
+        } else {
+            segment = TextSegment.from(request.content());
+        }
+
+//        EmbeddingStore<TextSegment> embeddingStore = getEmbeddingStore(mongoClient, embeddingModel, request);
+//
+//        Embedding embedding = embeddingModel.embed(segment).content();
+//        embeddingStore.add(embedding, segment);
+        return "Indexado!";
     }
 
+
+
+
+
+    //============================================================================================//
+//    public EmbeddingService() {
+//        log.info("EmbeddingService inicializado (modo simulado - 384 dimensões)");
+//        log.info("Para usar embeddings reais, integre com OpenAI, Cohere ou Hugging Face");
+//    }
     /**
      * Gera embedding para um texto único (modo simulado)
-     * 
+     *
      * Em produção, substitua por chamada a API real:
      * - OpenAI: https://platform.openai.com/docs/guides/embeddings
      * - Cohere: https://docs.cohere.com/reference/embed
@@ -66,29 +92,29 @@ public class EmbeddingService {
      */
     private float[] generateSimulatedEmbedding(String text) {
         float[] embedding = new float[embeddingDimension];
-        
+
         // Usar hash do texto como seed para gerar embedding determinístico
         long seed = text.hashCode();
         java.util.Random random = new java.util.Random(seed);
-        
+
         // Gerar valores aleatórios normalizados
         for (int i = 0; i < embeddingDimension; i++) {
             embedding[i] = (float) random.nextGaussian() / 10.0f;
         }
-        
+
         // Normalizar o vetor
         float norm = 0;
         for (float v : embedding) {
             norm += v * v;
         }
         norm = (float) Math.sqrt(norm);
-        
+
         if (norm > 0) {
             for (int i = 0; i < embeddingDimension; i++) {
                 embedding[i] /= norm;
             }
         }
-        
+
         return embedding;
     }
 

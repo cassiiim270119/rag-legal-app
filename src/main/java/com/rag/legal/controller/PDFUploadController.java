@@ -54,10 +54,7 @@ public class PDFUploadController {
         @ApiResponse(responseCode = "500", description = "Erro ao processar PDF")
     })
     public ResponseEntity<Map<String, Object>> uploadPDF(
-            @RequestParam("file") @Parameter(description = "Arquivo PDF para upload") MultipartFile file,
-            @RequestParam(value = "tribunal", required = false) @Parameter(description = "Tribunal (ex: STF, STJ)") String tribunal,
-            @RequestParam(value = "legalArea", required = false) @Parameter(description = "Area legal (ex: PENAL, CIVIL)") String legalArea,
-            @RequestParam(value = "documentType", required = false) @Parameter(description = "Tipo de documento (ex: LEI, SUMULA)") String documentType) {
+            @RequestParam("file") @Parameter(description = "Arquivo PDF para upload") MultipartFile file) {
 
         log.info("Recebido upload de PDF: {}", file.getOriginalFilename());
 
@@ -70,7 +67,7 @@ public class PDFUploadController {
 
         // Validar tipo de arquivo
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.equals("application/pdf")) {
+        if (!"application/pdf".equals(contentType)) {
             log.warn("Tipo de arquivo inválido: {}", contentType);
             return ResponseEntity.badRequest()
                 .body(Map.of("success", false, "message", "Apenas arquivos PDF são aceitos"));
@@ -86,9 +83,7 @@ public class PDFUploadController {
 
         try {
             // Processar e indexar PDF
-            Map<String, Object> result = pdfIndexingService.indexPDF(
-                file, tribunal, legalArea, documentType
-            );
+            Map<String, Object> result = pdfIndexingService.indexPDF(file);
 
             if ((Boolean) result.get("success")) {
                 return ResponseEntity.ok(result);
