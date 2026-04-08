@@ -47,8 +47,8 @@ logging:
 # LangChain4j Configuration
 langchain4j:
   groq:
-    api-key: ${GROQ_API_KEY:}
-    model-name: mixtral-8x7b-32768
+    api-key: ${GROQ_API_KEY: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}
+    model-name: openai/gpt-oss-20b
     temperature: 0.3
     top-p: 0.9
 

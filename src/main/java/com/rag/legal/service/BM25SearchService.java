@@ -79,12 +79,12 @@ public class BM25SearchService {
         refreshSearcher();
         log.info("Batch de {} documentos indexados", documents.size());
     }
-
     /**
      * Busca por palavras-chave usando BM25
      */
     public List<Map<String, Object>> search(String queryString, int limit) throws Exception {
         if (indexSearcher == null) {
+            indexWriter.close();
             refreshSearcher();
         }
 

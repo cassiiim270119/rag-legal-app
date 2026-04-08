@@ -23,7 +23,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/rag")
+@RequestMapping("/rag")
 @Slf4j
 @Tag(name = "RAG Endpoints", description = "Endpoints para Retrieval-Augmented Generation com busca híbrida")
 public class RAGController {

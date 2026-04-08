@@ -64,6 +64,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STF")
             .chapter("EXECUÇÃO PENAL")
             .article("1")
+            .paragraph("ÚNICO")
             .build());
 
         // Lei 1 - Código Penal
@@ -93,6 +94,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STJ")
             .chapter("PESSOAS")
             .article("1")
+            .paragraph("ÚNICO")
             .build());
 
         // Súmula 2 - STJ
@@ -107,6 +109,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STJ")
             .chapter("RECURSOS")
             .article("1")
+                .paragraph("ÚNICO")
             .build());
 
         // Lei 3 - Lei de Execução Penal
@@ -121,6 +124,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STF")
             .chapter("DISPOSIÇÕES PRELIMINARES")
             .article("1")
+                .paragraph("ÚNICO")
             .build());
 
         // Lei 4 - Lei de Direito Autoral
@@ -135,6 +139,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STJ")
             .chapter("DISPOSIÇÕES PRELIMINARES")
             .article("1")
+                .paragraph("ÚNICO")
             .build());
 
         // Súmula 3 - STF sobre Prisão
@@ -149,6 +154,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STF")
             .chapter("RECURSOS")
             .article("1")
+                .paragraph("ÚNICO")
             .build());
 
         // Lei 5 - Lei de Acesso à Informação
@@ -163,6 +169,7 @@ public class DataInitializationService implements CommandLineRunner {
             .tribunal("STJ")
             .chapter("DISPOSIÇÕES GERAIS")
             .article("1")
+                .paragraph("ÚNICO")
             .build());
 
         return documents;

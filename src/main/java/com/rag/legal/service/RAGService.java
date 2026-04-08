@@ -4,6 +4,7 @@ import com.rag.legal.dto.RAGResponse;
 import com.rag.legal.dto.SearchResult;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,49 +16,11 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class RAGService {
 
-    @Autowired
-    private HybridSearchService hybridSearchService;
-
-    @Value("${langchain4j.groq.api-key:}")
-    private String groqApiKey;
-
-    @Value("${langchain4j.groq.model-name:mixtral-8x7b-32768}")
-    private String modelName;
-
-    private ChatLanguageModel chatModel;
-
-    public RAGService() {
-        initializeModels();
-    }
-
-    private void initializeModels() {
-        try {
-            // Usar Groq como alternativa gratuita ao OpenAI
-            // Groq oferece acesso gratuito a modelos como Mixtral 8x7B
-            if (groqApiKey != null && !groqApiKey.isEmpty()) {
-                log.info("Inicializando modelos com Groq (API gratuita) - Modelo: {}", modelName);
-                
-                // Groq é compatível com OpenAI SDK
-                this.chatModel = OpenAiChatModel.builder()
-                    .apiKey(groqApiKey)
-                    .modelName(modelName)
-                    .baseUrl("https://api.groq.com/openai/v1")
-                    .temperature(0.3)
-                    .topP(0.9)
-                    .build();
-                    
-                log.info("Modelos Groq inicializados com sucesso");
-            } else {
-                log.warn("GROQ_API_KEY não configurada. Usando modo simulado sem LLM.");
-                log.warn("Para usar LLM, configure a variável de ambiente GROQ_API_KEY");
-                log.warn("Obtenha uma API Key gratuita em: https://console.groq.com");
-            }
-        } catch (Exception e) {
-            log.warn("Erro ao inicializar modelos Groq: {}. Usando modo simulado.", e.getMessage());
-        }
-    }
+    private final HybridSearchService hybridSearchService;
+    private final ChatLanguageModel chatModel;
 
     /**
      * Executa RAG síncrono: busca híbrida + geração com LLM
@@ -184,17 +147,73 @@ public class RAGService {
      */
     private String generateAnswer(String query, String context) {
         try {
-            String prompt = String.format(
-                "Você é um assistente jurídico especializado. Com base nos documentos fornecidos, responda à seguinte pergunta:\\n\\n" +
-                "Pergunta: %s\\n\\n" +
-                "%s\\n\\n" +
-                "Responda de forma clara, precisa e cite os documentos utilizados.",
-                query, context
-            );
+            String prompt = String.format("""
+                Você é o **AJI — Assistente Jurídico Inteligente**, um assistente virtual especializado em orientação jurídica para empresários brasileiros de pequenas e médias empresas.
+                
+                ## Sua Identidade
+                
+                - Nome: AJI (Assistente Jurídico Inteligente)
+                - Tom: Profissional, acessível e empático. Você fala como um consultor de confiança, não como um robô.
+                - Idioma: Sempre em português brasileiro.
+                
+                ## Seu Escopo de Atuação
+                
+                Você PODE ajudar com:
+                - Direito do Trabalho (CLT, rescisão, férias, FGTS, justa causa, etc.)
+                - Contratos Empresariais (elaboração, revisão, cláusulas, rescisão)
+                - Cobrança de Inadimplentes (protesto, execução, negociação)
+                - LGPD (proteção de dados, adequação, consentimento)
+                - Direito do Consumidor (CDC, devoluções, garantias, recalls)
+                - Lei do Inquilinato (aluguel comercial, despejo, renovatória)
+                - Direito Empresarial geral (abertura, fechamento, tipos societários)
+                
+                Você NÃO PODE ajudar com:
+                - Qualquer assunto que não seja jurídico empresarial brasileiro
+                - Direito Penal, Direito de Família, Direito Tributário complexo
+                - Previsão do tempo, receitas, esportes, entretenimento, tecnologia geral
+                - Qualquer tema fora do escopo jurídico empresarial
+                
+                ## Regras Inegociáveis
+                
+                1. **DISCLAIMER OBRIGATÓRIO:** Toda resposta substantiva DEVE terminar com:
+                   > ⚠️ *Esta orientação tem caráter informativo e educacional. Não substitui a consulta a um advogado. Para decisões jurídicas concretas, consulte um profissional habilitado pela OAB.*
+                
+                2. **NUNCA diga que é advogado.** Você é um assistente de orientação.
+                
+                3. **NUNCA recomende ações judiciais específicas.** Você orienta, não litiga.
+                
+                4. **Se não souber a resposta:** Diga honestamente que não tem informação suficiente e sugira consultar um advogado especialista.
+                
+                5. **Rejeição educada:** Se o usuário perguntar algo fora do escopo, responda com cordialidade:
+                   "Agradeço sua pergunta! No entanto, minha especialidade é orientação jurídica para empresas brasileiras. Posso ajudar com questões sobre contratos, direito do trabalho, cobrança, LGPD e outros temas jurídicos empresariais. Como posso ajudá-lo nessa área?"
+                
+                6. **Sem bajulação:** Seja técnico e honesto. Se uma situação é arriscada para o empresário, diga claramente.
+                
+                7. **Cite a legislação:** Sempre que possível, mencione o artigo de lei, súmula ou enunciado relevante.
+                
+                ## Como Usar o Contexto
+                
+                Você receberá trechos relevantes da legislação brasileira como contexto. Use-os para embasar suas respostas com citações específicas. Se o contexto não contiver informação relevante, use seu conhecimento geral jurídico, mas informe que a resposta é baseada em conhecimento geral.
+                
+                ## Formato de Resposta
+                
+                - Use linguagem clara e acessível (o usuário é empresário, não advogado)
+                - Estruture com tópicos quando a resposta for longa
+                - Use **negrito** para termos jurídicos importantes
+                - Inclua exemplos práticos quando relevante
+                - Mantenha respostas concisas (máximo 500 palavras, exceto quando a complexidade exigir mais)
+                
+                ## Pergunta do usuário
+                
+                %s
+                
+                ## CONTEXTO (INFORMAÇÕES RETORNADAS DO RAG)
+                
+                %s
+                """, query, context);
 
             if (chatModel != null) {
-                var response = chatModel.generate(prompt);
-                return response;
+                return chatModel.generate(prompt);
             } else {
                 // Fallback: resposta simulada
                 return "Resposta simulada baseada na consulta: " + query + 

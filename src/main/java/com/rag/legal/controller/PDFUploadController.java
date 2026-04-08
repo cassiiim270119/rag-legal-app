@@ -28,7 +28,7 @@ import java.util.Map;
  * - GET /api/pdf/stats - Estatísticas de indexação
  */
 @RestController
-@RequestMapping("/api/pdf")
+@RequestMapping("/pdf")
 @Slf4j
 @Tag(name = "PDF Upload", description = "Endpoints para upload e indexação de documentos PDF")
 public class PDFUploadController {

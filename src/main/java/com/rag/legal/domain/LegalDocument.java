@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "legal_documents", indexes = {
@@ -101,16 +102,16 @@ public class LegalDocument {
      * Retorna os metadados como um mapa estruturado para filtragem
      */
     public java.util.Map<String, Object> getMetadata() {
-        return java.util.Map.ofEntries(
-            java.util.Map.entry("documentNumber", this.documentNumber),
-            java.util.Map.entry("documentType", this.documentType),
-            java.util.Map.entry("tribunal", this.tribunal),
-            java.util.Map.entry("legalArea", this.legalArea),
-            java.util.Map.entry("status", this.status),
-            java.util.Map.entry("publicationDate", this.publicationDate.toString()),
-            java.util.Map.entry("chapter", this.chapter),
-            java.util.Map.entry("article", this.article),
-            java.util.Map.entry("paragraph", this.paragraph)
+        return Map.of(
+                "documentNumber", this.documentNumber,
+                "documentType", this.documentType,
+                "tribunal", this.tribunal,
+                "legalArea", this.legalArea,
+                "status", this.status,
+                "publicationDate", this.publicationDate.toString(),
+                "chapter", this.chapter,
+                "article", this.article,
+                "paragraph", this.paragraph
         );
     }
 

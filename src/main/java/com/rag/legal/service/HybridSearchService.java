@@ -87,7 +87,7 @@ public class HybridSearchService {
                     return doc != null ? mapToSearchResult(doc, entry.getValue()) : null;
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
             // 6. Aplicar Reranking se habilitado
             if (rerankingEnabled && results.size() > rerankingTopK) {
