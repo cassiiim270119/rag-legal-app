@@ -1,10 +1,7 @@
 package com.rag.legal.config;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.output.Response;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
@@ -25,7 +22,7 @@ import java.util.List;
 @Configuration
 public class OpenAPIConfig {
 
-    @Value("${langchain4j.groq.api-key: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}")
+    @Value("${langchain4j.groq.api-key}")
     private String groqApiKey;
 
     @Value("${langchain4j.groq.model-name:llama-3.3-70b-versatile}")
@@ -57,13 +54,6 @@ public class OpenAPIConfig {
 
     @Bean
     public ChatLanguageModel customChatModel() {
-//        return OpenAiChatModel.builder()
-//                .modelName("openai/gpt-oss-20b")
-//                .baseUrl("https://api.groq.com/openai/v1")
-//                .apiKey("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")
-//                .logRequests(true)
-//                .logResponses(true)
-//                .build();
         return OpenAiChatModel.builder()
                 .apiKey(groqApiKey)
                 .modelName(modelName)
