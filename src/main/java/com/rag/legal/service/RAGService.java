@@ -2,15 +2,11 @@ package com.rag.legal.service;
 
 import com.rag.legal.dto.RAGResponse;
 import com.rag.legal.dto.SearchResult;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.chat.ChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 
 import java.util.List;
 
@@ -20,7 +16,7 @@ import java.util.List;
 public class RAGService {
 
     private final HybridSearchService hybridSearchService;
-    private final ChatLanguageModel chatModel;
+    private final ChatModel chatModel;
 
     /**
      * Executa RAG síncrono: busca híbrida + geração com LLM
@@ -126,17 +122,15 @@ public class RAGService {
      */
     private String buildContext(List<SearchResult> sources) {
         StringBuilder context = new StringBuilder();
-        context.append("DOCUMENTOS JURÍDICOS RELEVANTES:\\n\\n");
 
         for (int i = 0; i < sources.size(); i++) {
             SearchResult source = sources.get(i);
-            context.append(String.format("Documento %d:\\n", i + 1));
-            context.append(String.format("Número: %s\\n", source.getDocumentNumber()));
-            context.append(String.format("Título: %s\\n", source.getTitle()));
-            context.append(String.format("Tribunal: %s\\n", source.getTribunal()));
-            context.append(String.format("Área: %s\\n", source.getLegalArea()));
-            context.append(String.format("Status: %s\\n", source.getStatus()));
-            context.append(String.format("Conteúdo: %s\\n\\n", source.getContent().substring(0, Math.min(500, source.getContent().length()))));
+            context.append(String.format("Documento %d:\n", i + 1));
+            context.append(String.format("Número: %s\n", source.getDocumentNumber()));
+            context.append(String.format("Título: %s\n", source.getTitle()));
+            context.append(String.format("Área: %s\n", source.getLegalArea()));
+            context.append(String.format("Status: %s\n", source.getStatus()));
+            context.append(String.format("Conteúdo: %s\n\n", source.getContent()));
         }
 
         return context.toString();
@@ -203,7 +197,7 @@ public class RAGService {
                 - Inclua exemplos práticos quando relevante
                 - Mantenha respostas concisas (máximo 500 palavras, exceto quando a complexidade exigir mais)
                 
-                ## Pergunta do usuário
+                ## PERGUNTA DO USUÁRIO
                 
                 %s
                 
@@ -213,7 +207,7 @@ public class RAGService {
                 """, query, context);
 
             if (chatModel != null) {
-                return chatModel.generate(prompt);
+                return chatModel.chat(prompt);
             } else {
                 // Fallback: resposta simulada
                 return "Resposta simulada baseada na consulta: " + query + 

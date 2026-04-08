@@ -3,10 +3,10 @@ package com.rag.legal.controller;
 import com.rag.legal.service.PDFIndexingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,11 +30,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/pdf")
 @Slf4j
+@RequiredArgsConstructor
 @Tag(name = "PDF Upload", description = "Endpoints para upload e indexação de documentos PDF")
 public class PDFUploadController {
 
-    @Autowired
-    private PDFIndexingService pdfIndexingService;
+    private final PDFIndexingService pdfIndexingService;
 
     /**
      * Upload e indexação de um único PDF
@@ -119,7 +119,7 @@ public class PDFUploadController {
         @ApiResponse(responseCode = "500", description = "Erro ao processar batch")
     })
     public ResponseEntity<Map<String, Object>> uploadPDFBatch(
-            @RequestParam("files") @Parameter(description = "Lista de arquivos PDF") List<MultipartFile> files,
+            @RequestParam("src/files") @Parameter(description = "Lista de arquivos PDF") List<MultipartFile> files,
             @RequestParam(value = "tribunal", required = false) @Parameter(description = "Tribunal") String tribunal,
             @RequestParam(value = "legalArea", required = false) @Parameter(description = "Area legal") String legalArea,
             @RequestParam(value = "documentType", required = false) @Parameter(description = "Tipo de documento") String documentType) {

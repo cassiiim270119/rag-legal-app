@@ -50,10 +50,10 @@ public class LegalDocument {
     private String status; // VIGENTE, REVOGADA, PARCIALMENTE_REVOGADA
 
     // Metadados de Classificação
-    @Column(nullable = false)
+    @Column
     private String legalArea; // CIVIL, PENAL, TRABALHISTA, ADMINISTRATIVO
 
-    @Column(nullable = false)
+    @Column
     private String tribunal; // STF, STJ, TJ, TST, TSE
 
     @Column
@@ -108,10 +108,9 @@ public class LegalDocument {
                 "tribunal", this.tribunal,
                 "legalArea", this.legalArea,
                 "status", this.status,
-                "publicationDate", this.publicationDate.toString(),
-                "chapter", this.chapter,
-                "article", this.article,
-                "paragraph", this.paragraph
+                "publicationDate", this.publicationDate.toString()//,
+//                "chapter", this.chapter,
+//                "paragraph", this.paragraph
         );
     }
 

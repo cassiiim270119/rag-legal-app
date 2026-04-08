@@ -1,6 +1,6 @@
 package com.rag.legal.config;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -53,7 +53,7 @@ public class OpenAPIConfig {
     }
 
     @Bean
-    public ChatLanguageModel customChatModel() {
+    public ChatModel customChatModel() {
         return OpenAiChatModel.builder()
                 .apiKey(groqApiKey)
                 .modelName(modelName)

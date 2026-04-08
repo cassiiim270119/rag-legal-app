@@ -1,5 +1,9 @@
 package com.rag.legal.service;
 
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.splitter.DocumentSplitters;
+import dev.langchain4j.data.segment.TextSegment;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -101,6 +105,15 @@ public class PDFExtractionService {
             .trim();
     }
 
+    public List<String> chunkBySize(final String text) {
+        Document document = Document.from(text);
+        DocumentSplitter splitter = DocumentSplitters.recursive(500, 75);
+        return splitter.split(document)
+                .stream()
+                .map(TextSegment::text)
+                .toList();
+    }
+
     /**
      * Divide texto em chunks por parágrafo
      */
@@ -110,14 +123,14 @@ public class PDFExtractionService {
         
         StringBuilder currentChunk = new StringBuilder();
         for (String paragraph : paragraphs) {
-            if (currentChunk.length() + paragraph.length() > minChunkSize && currentChunk.length() > 0) {
+            if (currentChunk.length() + paragraph.length() > minChunkSize && !currentChunk.isEmpty()) {
                 chunks.add(currentChunk.toString().trim());
                 currentChunk = new StringBuilder();
             }
             currentChunk.append(paragraph).append("\n\n");
         }
         
-        if (currentChunk.length() > 0) {
+        if (!currentChunk.isEmpty()) {
             chunks.add(currentChunk.toString().trim());
         }
         
