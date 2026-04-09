@@ -7,9 +7,13 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
+RUN ls
+RUN ls -la /app
 # Copy source code
 COPY src ./src
 
+RUN ls
+RUN ls -la /app
 # Copy knowledge_base files
 COPY knowledge_base ./knowledge_base
 
@@ -20,6 +24,11 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
+
+RUN ls
+RUN ls -la /app
+# Copy knowledge_base files
+COPY knowledge_base ./knowledge_base
 
 # Copy JAR from builder
 COPY --from=builder /app/target/rag-legal-app-1.0.0.jar app.jar
