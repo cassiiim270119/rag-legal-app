@@ -7,15 +7,8 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
-RUN ls
-RUN ls -la /app
 # Copy source code
 COPY src ./src
-
-RUN ls
-RUN ls -la /app
-# Copy knowledge_base files
-COPY knowledge_base ./knowledge_base
 
 # Build application
 RUN mvn clean package -DskipTests
@@ -25,8 +18,6 @@ FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 
-RUN ls
-RUN ls -la /app
 # Copy knowledge_base files
 COPY knowledge_base ./knowledge_base
 
@@ -42,7 +33,7 @@ ENV SPRING_PROFILES_ACTIVE=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/rag/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/chat/health || exit 1
 
 # Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]

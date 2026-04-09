@@ -17,7 +17,7 @@ services:
         value: production
         scope: runtime
       - key: JAVA_OPTS
-        value: -Xmx256m -Xms128m
+        value: -Xmx2048m -Xms1024m
         scope: runtime
     
     # Health check
