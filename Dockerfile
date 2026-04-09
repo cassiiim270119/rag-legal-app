@@ -10,6 +10,9 @@ RUN mvn dependency:go-offline
 # Copy source code
 COPY src ./src
 
+# Copy knowledge_base files
+COPY knowledge_base ./knowledge_base
+
 # Build application
 RUN mvn clean package -DskipTests
 
