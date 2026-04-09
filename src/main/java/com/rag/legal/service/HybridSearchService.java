@@ -42,7 +42,7 @@ public class HybridSearchService {
      */
     public List<SearchResult> hybridSearch(String query, String tribunal, String legalArea, int limit) {
         try {
-            log.info("Iniciando busca híbrida: query={}, tribunal={}, legalArea={}", query, tribunal, legalArea);
+            log.info("Iniciando busca híbrida: query={}", query);
 
             // 1. Busca BM25
             List<Map<String, Object>> bm25Results = bm25SearchService.searchVigente(query, limit * 2);
@@ -54,16 +54,7 @@ public class HybridSearchService {
             Map<Long, Double> vectorScores = calculateVectorScores(allDocuments, queryEmbedding);
 
             // 3. Aplicar filtros de metadados
-            if (tribunal != null && !tribunal.isEmpty()) {
-                allDocuments = allDocuments.stream()
-                    .filter(d -> d.getTribunal().equals(tribunal))
-                    .collect(Collectors.toList());
-            }
-            if (legalArea != null && !legalArea.isEmpty()) {
-                allDocuments = allDocuments.stream()
-                    .filter(d -> d.getLegalArea().equals(legalArea))
-                    .collect(Collectors.toList());
-            }
+
 
             // 4. Combinar scores (Hybrid Fusion)
             Map<Long, Double> hybridScores = new HashMap<>();
