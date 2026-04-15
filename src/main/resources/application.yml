@@ -3,20 +3,17 @@ spring:
     name: rag-legal-app
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   datasource:
-    url: jdbc:h2:mem:ragdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
+    url: ${POSTGRE_URL}
+    username: ${POSTGRE_USR}
+    password: ${POSTGRE_PASS}
+    driver-class-name: org.postgresql.Driver
 
 server:
   port: 8080

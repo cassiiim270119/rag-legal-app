@@ -21,14 +21,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-@Service
+//@Service
 @Slf4j
 public class DataInitializationService implements CommandLineRunner {
 
-    @Autowired
+//    @Autowired
     private PDFIndexingService pdfIndexingService;
 
-    @Override
+//    @Override
     public void run(String... args) throws Exception {
         log.info("Iniciando carregamento de dados iniciais...");
 
