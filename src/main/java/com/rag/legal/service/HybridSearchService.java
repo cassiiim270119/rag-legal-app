@@ -89,7 +89,7 @@ public class HybridSearchService {
             return results;
 
         } catch (Exception e) {
-            log.error("Erro na busca híbr ida", e);
+            log.error("Erro na busca híbrida", e);
             // Retornar lista vazia em vez de lançar exceção
             log.warn("Retornando lista vazia devido ao erro: {}", e.getMessage());
             return new ArrayList<>();

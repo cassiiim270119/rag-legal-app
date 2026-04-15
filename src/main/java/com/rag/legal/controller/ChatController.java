@@ -58,13 +58,13 @@ public class ChatController {
 
             ChatResponse chatResponse = ChatResponse.builder()
                     .response(response.getAnswer())
-                    .sources(response.getSources().stream()
+                    .sources(response.getSources() != null ? response.getSources().stream()
                             .map(source -> SourceResponse.builder()
                                     .category("Geral")
                                     .source(source.getTitle())
                                     .relevance("1.0")
                                     .build())
-                            .toList())
+                            .toList() : null)
                     .in_scope("Escopo")
                     .build();
             return ResponseEntity.ok(chatResponse);

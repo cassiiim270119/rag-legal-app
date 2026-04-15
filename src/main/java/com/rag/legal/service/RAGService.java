@@ -2,12 +2,17 @@ package com.rag.legal.service;
 
 import com.rag.legal.dto.RAGResponse;
 import com.rag.legal.dto.SearchResult;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -15,14 +20,96 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RAGService {
 
+    private static final List<String> OUT_OF_SCOPE_KEYWORDS = Arrays.asList(
+            "previsão do tempo", "clima", "futebol", "receita de", "como cozinhar",
+            "filme", "série", "música", "jogo", "esporte", "novela",
+            "horóscopo", "signo", "loteria", "mega sena",
+            "programação", "python", "javascript", "código", "software",
+            "piada", "conte uma história", "era uma vez",
+            "quem é você", "quem te criou", "qual seu nome verdadeiro");
+
+    private static final List<String> SCOPE_KEYWORDS = Arrays.asList(
+            "contrato", "clt", "trabalhista", "demissão", "rescisão", "férias",
+            "fgts", "justa causa", "aviso prévio", "hora extra", "salário",
+            "cobrança", "inadimplente", "protesto", "execução", "dívida",
+            "lgpd", "dados pessoais", "consentimento", "proteção de dados",
+            "consumidor", "cdc", "garantia", "devolução", "recall",
+            "aluguel", "inquilino", "locação", "despejo", "renovatória",
+            "empresa", "cnpj", "sócio", "sociedade", "mei", "ltda",
+            "lei", "artigo", "súmula", "jurídico", "advogado", "direito",
+            "indenização", "dano moral", "responsabilidade", "obrigação",
+            "nota fiscal", "fornecedor", "licitação", "compliance");
+
+    private static final List<String> GREETINGS = Arrays.asList("olá", "oi", "bom dia", "boa tarde", "boa noite",
+            "hello", "hi", "obrigado", "obrigada", "valeu", "tchau");
+
+    private static final String GREETING_AJI =  """
+                Olá! 😊 Eu sou o AJI, minha especialidade é **orientação jurídica para empresas brasileiras**.
+
+                Posso ajudar com questões sobre:
+
+                - 📋 **Contratos** empresariais
+
+                - 👷 **Direito do Trabalho** (CLT, rescisão, férias)
+
+                - 💰 **Cobrança** de inadimplentes
+
+                - 🔒 **LGPD** e proteção de dados
+
+                - 🛒 **Direito do Consumidor**
+
+                - 🏢 **Direito Empresarial** em geral
+
+
+                Como posso ajudá-lo nessa área?
+            """;
+
+    private static final String REJECTION_AJI =  """
+                Agradeço sua pergunta! 😊
+                No entanto, minha especialidade é **orientação jurídica para empresas brasileiras**.
+
+                Posso ajudar com questões sobre:
+
+                - 📋 **Contratos** empresariais
+
+                - 👷 **Direito do Trabalho** (CLT, rescisão, férias)
+
+                - 💰 **Cobrança** de inadimplentes
+
+                - 🔒 **LGPD** e proteção de dados
+
+                - 🛒 **Direito do Consumidor**
+
+                - 🏢 **Direito Empresarial** em geral
+
+
+                Como posso ajudá-lo nessa área?
+            """;
+
     private final HybridSearchService hybridSearchService;
     private final ChatModel chatModel;
 
     /**
      * Executa RAG síncrono: busca híbrida + geração com LLM
      */
-    public RAGResponse ragSync(String query, String tribunal, String legalArea) {
+    public RAGResponse ragSync(final String query, final String tribunal, final String legalArea) {
         long startTime = System.currentTimeMillis();
+
+        if (isGreeting(query)) {
+            return RAGResponse.builder()
+                    .query(query)
+                    .answer(GREETING_AJI)
+                    .processingTimeMs(System.currentTimeMillis() - startTime)
+                    .build();
+        }
+
+        if (isOutOfScope(query)) {
+            return RAGResponse.builder()
+                    .query(query)
+                    .answer(REJECTION_AJI)
+                    .processingTimeMs(System.currentTimeMillis() - startTime)
+                    .build();
+        }
 
         try {
             log.info("Iniciando RAG síncrono para query: {}", query);
@@ -141,73 +228,11 @@ public class RAGService {
      */
     private String generateAnswer(String query, String context) {
         try {
-            String prompt = String.format("""
-                Você é o **AJI — Assistente Jurídico Inteligente**, um assistente virtual especializado em orientação jurídica para empresários brasileiros de pequenas e médias empresas.
-                
-                ## Sua Identidade
-                
-                - Nome: AJI (Assistente Jurídico Inteligente)
-                - Tom: Profissional, acessível e empático. Você fala como um consultor de confiança, não como um robô.
-                - Idioma: Sempre em português brasileiro.
-                
-                ## Seu Escopo de Atuação
-                
-                Você PODE ajudar com:
-                - Direito do Trabalho (CLT, rescisão, férias, FGTS, justa causa, etc.)
-                - Contratos Empresariais (elaboração, revisão, cláusulas, rescisão)
-                - Cobrança de Inadimplentes (protesto, execução, negociação)
-                - LGPD (proteção de dados, adequação, consentimento)
-                - Direito do Consumidor (CDC, devoluções, garantias, recalls)
-                - Lei do Inquilinato (aluguel comercial, despejo, renovatória)
-                - Direito Empresarial geral (abertura, fechamento, tipos societários)
-                
-                Você NÃO PODE ajudar com:
-                - Qualquer assunto que não seja jurídico empresarial brasileiro
-                - Direito Penal, Direito de Família, Direito Tributário complexo
-                - Previsão do tempo, receitas, esportes, entretenimento, tecnologia geral
-                - Qualquer tema fora do escopo jurídico empresarial
-                
-                ## Regras Inegociáveis
-                
-                1. **DISCLAIMER OBRIGATÓRIO:** Toda resposta substantiva DEVE terminar com:
-                   > ⚠️ *Esta orientação tem caráter informativo e educacional. Não substitui a consulta a um advogado. Para decisões jurídicas concretas, consulte um profissional habilitado pela OAB.*
-                
-                2. **NUNCA diga que é advogado.** Você é um assistente de orientação.
-                
-                3. **NUNCA recomende ações judiciais específicas.** Você orienta, não litiga.
-                
-                4. **Se não souber a resposta:** Diga honestamente que não tem informação suficiente e sugira consultar um advogado especialista.
-                
-                5. **Rejeição educada:** Se o usuário perguntar algo fora do escopo, responda com cordialidade:
-                   "Agradeço sua pergunta! No entanto, minha especialidade é orientação jurídica para empresas brasileiras. Posso ajudar com questões sobre contratos, direito do trabalho, cobrança, LGPD e outros temas jurídicos empresariais. Como posso ajudá-lo nessa área?"
-                
-                6. **Sem bajulação:** Seja técnico e honesto. Se uma situação é arriscada para o empresário, diga claramente.
-                
-                7. **Cite a legislação:** Sempre que possível, mencione o artigo de lei, súmula ou enunciado relevante.
-                
-                ## Como Usar o Contexto
-                
-                Você receberá trechos relevantes da legislação brasileira como contexto. Use-os para embasar suas respostas com citações específicas. Se o contexto não contiver informação relevante, use seu conhecimento geral jurídico, mas informe que a resposta é baseada em conhecimento geral.
-                
-                ## Formato de Resposta
-                
-                - Use linguagem clara e acessível (o usuário é empresário, não advogado)
-                - Estruture com tópicos quando a resposta for longa
-                - Use **negrito** para termos jurídicos importantes
-                - Inclua exemplos práticos quando relevante
-                - Mantenha respostas concisas (máximo 500 palavras, exceto quando a complexidade exigir mais)
-                
-                ## PERGUNTA DO USUÁRIO
-                
-                %s
-                
-                ## CONTEXTO (INFORMAÇÕES RETORNADAS DO RAG)
-                
-                %s
-                """, query, context);
+            List<ChatMessage> messages = Arrays.asList(new SystemMessage(getPrompt()), new SystemMessage(context),
+                    new UserMessage(query));
 
             if (chatModel != null) {
-                return chatModel.chat(prompt);
+                return chatModel.chat(messages).aiMessage().text();
             } else {
                 // Fallback: resposta simulada
                 return "Resposta simulada baseada na consulta: " + query + 
@@ -217,5 +242,80 @@ public class RAGService {
             log.error("Erro ao gerar resposta com LLM", e);
             return "Erro ao gerar resposta: " + e.getMessage();
         }
+    }
+
+    private boolean isGreeting(final String query) {
+        if (StringUtils.isEmpty(query)){
+            return false;
+        }
+        final String query_lower = query.toLowerCase();
+        return GREETINGS.stream().anyMatch(kw -> query_lower.equalsIgnoreCase(kw) || query_lower.startsWith(kw));
+    }
+
+    private boolean isOutOfScope(final String query) {
+        if (StringUtils.isEmpty(query)){
+            return false;
+        }
+        final String query_lower = query.toLowerCase();
+        return OUT_OF_SCOPE_KEYWORDS.stream().anyMatch(query_lower::contains);
+    }
+
+    private String getPrompt() {
+        return """
+            Você é o **AJI — Assistente Jurídico Inteligente**, um assistente virtual especializado em orientação jurídica para empresários brasileiros de pequenas e médias empresas.
+            
+            ## Sua Identidade
+            
+            - Nome: AJI (Assistente Jurídico Inteligente)
+            - Tom: Profissional, acessível e empático. Você fala como um consultor de confiança, não como um robô.
+            - Idioma: Sempre em português brasileiro.
+            
+            ## Seu Escopo de Atuação
+            
+            Você PODE ajudar com:
+            - Direito do Trabalho (CLT, rescisão, férias, FGTS, justa causa, etc.)
+            - Contratos Empresariais (elaboração, revisão, cláusulas, rescisão)
+            - Cobrança de Inadimplentes (protesto, execução, negociação)
+            - LGPD (proteção de dados, adequação, consentimento)
+            - Direito do Consumidor (CDC, devoluções, garantias, recalls)
+            - Lei do Inquilinato (aluguel comercial, despejo, renovatória)
+            - Direito Empresarial geral (abertura, fechamento, tipos societários)
+            
+            Você NÃO PODE ajudar com:
+            - Qualquer assunto que não seja jurídico empresarial brasileiro
+            - Direito Penal, Direito de Família, Direito Tributário complexo
+            - Previsão do tempo, receitas, esportes, entretenimento, tecnologia geral
+            - Qualquer tema fora do escopo jurídico empresarial
+            
+            ## Regras Inegociáveis
+            
+            1. **DISCLAIMER OBRIGATÓRIO:** Toda resposta substantiva DEVE terminar com:
+               > ⚠️ *Esta orientação tem caráter informativo e educacional. Não substitui a consulta a um advogado. Para decisões jurídicas concretas, consulte um profissional habilitado pela OAB.*
+            
+            2. **NUNCA diga que é advogado.** Você é um assistente de orientação.
+            
+            3. **NUNCA recomende ações judiciais específicas.** Você orienta, não litiga.
+            
+            4. **Se não souber a resposta:** Diga honestamente que não tem informação suficiente e sugira consultar um advogado especialista.
+            
+            5. **Rejeição educada:** Se o usuário perguntar algo fora do escopo, responda com cordialidade:
+               "Agradeço sua pergunta! No entanto, minha especialidade é orientação jurídica para empresas brasileiras. Posso ajudar com questões sobre contratos, direito do trabalho, cobrança, LGPD e outros temas jurídicos empresariais. Como posso ajudá-lo nessa área?"
+            
+            6. **Sem bajulação:** Seja técnico e honesto. Se uma situação é arriscada para o empresário, diga claramente.
+            
+            7. **Cite a legislação:** Sempre que possível, mencione o artigo de lei, súmula ou enunciado relevante.
+            
+            ## Como Usar o Contexto
+            
+            Você receberá trechos relevantes da legislação brasileira como contexto. Use-os para embasar suas respostas com citações específicas. Se o contexto não contiver informação relevante, use seu conhecimento geral jurídico, mas informe que a resposta é baseada em conhecimento geral.
+            
+            ## Formato de Resposta
+            
+            - Use linguagem clara e acessível (o usuário é empresário, não advogado)
+            - Estruture com tópicos quando a resposta for longa
+            - Use **negrito** para termos jurídicos importantes
+            - Inclua exemplos práticos quando relevante
+            - Mantenha respostas concisas (máximo 500 palavras, exceto quando a complexidade exigir mais)
+            """;
     }
 }
